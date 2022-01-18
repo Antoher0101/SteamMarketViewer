@@ -1,0 +1,174 @@
+﻿<Window x:Class="SteamMarketViewer.MainWindow"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SteamMarketViewer"
+        xmlns:fa="http://schemas.fontawesome.io/icons/" d:DataContext="{d:DesignInstance Type=local:SteamControl}"
+		mc:Ignorable="d"
+
+        TextElement.Foreground="#b8b6b4"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="#1b2838"
+        FontFamily="Motiva Sans, Roboto"
+
+        Title="MainWindow" Height="600" Width="1200">
+	<Window.Resources>
+		<local:EnumBooleanConverter x:Key="EnumBooleanConverter"/>
+		<local:InversedBoolToVisibility x:Key="InversedBoolToVisibility"/>
+		<local:BoolToVisibility x:Key="BoolToVisibility"/>
+	</Window.Resources>
+
+	<Grid>
+
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="4*"/>
+			<ColumnDefinition Width="1*"/>
+		</Grid.ColumnDefinitions>
+		<Menu Panel.ZIndex="2" HorizontalContentAlignment="Center" Background="#171a21" Foreground="#b8b6b4" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled" VerticalContentAlignment="Center" UseLayoutRounding="False" Grid.ColumnSpan="2">
+			<Menu.ItemsPanel>
+				<ItemsPanelTemplate>
+					<DockPanel/>
+				</ItemsPanelTemplate>
+			</Menu.ItemsPanel>
+			<MenuItem Header="Файл">
+				<MenuItem Header="Открыть" >
+				</MenuItem>
+				<Separator />
+				<MenuItem Header="Выход" ></MenuItem>
+			</MenuItem>
+			<MenuItem Header="Правка" >
+			</MenuItem>
+			<MenuItem Header="Вид" ></MenuItem>
+			<MenuItem Header="Калькулятор" Click="Calc_Click"></MenuItem>
+			<MenuItem Header="Выйти из Steam"  Background="Transparent" Click="Steam_LogOut_Click" HorizontalAlignment="Right" Visibility="{Binding IsLoggined, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"/>
+			<MenuItem Grid.Column="1" Header="Войти в Steam"  Background="#5c7e10" Click="Steam_LogIn_Click" Visibility="{Binding IsLoggined, Converter={StaticResource InversedBoolToVisibility}, FallbackValue=Visible}" VerticalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Right" HorizontalContentAlignment="Right" FlowDirection="RightToLeft"/>
+
+		</Menu>
+		<ListView x:Name="ItemList" Margin="5 50 5 5" ItemsSource="{Binding ItemList}" MouseUp="ItemList_OnMouseUp" Grid.Column="0" IsSynchronizedWithCurrentItem="False">
+			<ListView.View>
+				<GridView>
+					<GridViewColumn Header="НАЗВАНИЕ" Width="Auto">
+						<GridViewColumn.CellTemplate>
+							<DataTemplate>
+								<StackPanel Orientation="Horizontal" >
+									<Image Width="64" Height="64" Stretch="Uniform" HorizontalAlignment="Center">
+										<Image.Source>
+											<Binding Path="Preview">
+												<Binding.TargetNullValue>
+													<ImageSource>Resources/placeholder.jpg</ImageSource>
+												</Binding.TargetNullValue>
+											</Binding>
+										</Image.Source>
+									</Image>
+									<StackPanel Orientation="Vertical" Margin="10 15 10 0">
+										<TextBlock Text="{Binding Name}" HorizontalAlignment="Left" VerticalAlignment="Center" FontWeight="Bold" FontSize="16" />
+										<TextBlock Text="{Binding GameName}" HorizontalAlignment="Left"/>
+									</StackPanel>
+								</StackPanel>
+							</DataTemplate>
+						</GridViewColumn.CellTemplate>
+					</GridViewColumn>
+					<GridViewColumn Header="ПРОДАЖА" Width="150" >
+						<GridViewColumn.CellTemplate>
+							<DataTemplate>
+								<TextBlock Text="{Binding SalePrice}" Margin="30 20"/>
+							</DataTemplate>
+						</GridViewColumn.CellTemplate>
+					</GridViewColumn>
+					<GridViewColumn Header="ПОКУПКА" Width="150">
+						<GridViewColumn.CellTemplate>
+							<DataTemplate>
+								<TextBlock Text="{Binding SellPriceText}" Margin="30 20"/>
+							</DataTemplate>
+						</GridViewColumn.CellTemplate>
+					</GridViewColumn>
+					<GridViewColumn Header="КОЛ-ВО" Width="150">
+						<GridViewColumn.CellTemplate>
+							<DataTemplate>
+								<TextBlock Text="{Binding SellListings}" Margin="20 20"/>
+							</DataTemplate>
+						</GridViewColumn.CellTemplate>
+					</GridViewColumn>
+				</GridView>
+			</ListView.View>
+			<ListView.ContextMenu>
+				<ContextMenu>
+					<MenuItem Header="Analyze"
+					          Command="{Binding AnalyzeItem}"
+					          CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}" />
+					<MenuItem Header="Remove"
+					          Command="{Binding RemoveItem}"
+					          CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}" />
+				</ContextMenu>
+			</ListView.ContextMenu>
+			<ListView.ItemContainerStyle>
+				<Style TargetType="ListViewItem" BasedOn="{StaticResource MaterialDesignGridViewItem}">
+					<Style.Triggers>
+						<DataTrigger Binding="{Binding Ready}" Value="False">
+							<Setter Property="IsHitTestVisible" Value="False"/>
+						</DataTrigger>
+					</Style.Triggers>
+				</Style>
+			</ListView.ItemContainerStyle>
+		</ListView>
+		<!--<Popup x:Name="popup1" StaysOpen="False" Placement="Mouse"
+         AllowsTransparency="False" Grid.RowSpan="2" PopupAnimation="Slide" Visibility="Collapsed"  >
+			
+		</Popup> -->
+		<WpfPlot x:Name="PriceList" Width="919" Height="300" Visibility="Collapsed"></WpfPlot>
+		<Button x:Name="StartBtn" 
+				Margin="49,0,49,25"
+		        
+		        Width="100" 
+		        Click="StartBtn_Click" 
+		        Grid.Column="1" 
+				Height="30"
+				BorderThickness="0"
+				Foreground="#b8b6b4"
+				Background="#5c7e10" VerticalAlignment="Bottom" Grid.Row="1" Padding="0" ScrollViewer.CanContentScroll="True" UseLayoutRounding="True">
+			<Button.Content>
+				<StackPanel Orientation="Horizontal">
+				<TextBlock Text="Парсить" VerticalAlignment="Center"/>
+				<ProgressBar x:Name="progressBar" Grid.Column="1" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" Foreground="White" Margin="10,0,0,0" Width="25" Height="25" IsIndeterminate="True" 
+				             Visibility="{Binding Loading, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"/>
+				</StackPanel>
+			</Button.Content>
+		</Button>
+		
+
+		<StackPanel x:Name="stackPanel1" Grid.Column="1" HorizontalAlignment="Left" Height="200" Margin="15,62,0,0" VerticalAlignment="Top" Width="207">
+			<TextBlock Text="Поиск предметов" Foreground="#FF4582A5" Margin="0,0,0,10"></TextBlock>
+			<StackPanel Orientation="Horizontal" Height="Auto" Margin="0,0,0,20">
+				<DockPanel/>
+				<TextBox x:Name="ItemSearchField" TextWrapping="Wrap" Text="Поиск" Width="182" GotFocus="RemoveText" LostFocus="AddText" />
+				<Button x:Name="SearchBtn" 
+				        Height="Auto" Margin="0" HorizontalContentAlignment="Center" Padding="0" fa:Awesome.Content="search" 
+				        TextElement.FontFamily="pack://application:,,,/FontAwesome.WPF;component/#FontAwesome" Background="Transparent" BorderBrush="Transparent" Width="24" Foreground="#FF969AA1" Click="StartBtn_Click" IsDefault="True"/>
+				<DockPanel/>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+				<Button x:Name="button" Height="40" Padding="2" Width="{Binding ActualWidth, ElementName=stackPanel1, Mode=OneWay}" HorizontalContentAlignment="Left"
+				        Command="Select" CommandParameter="{x:Static local:Game.CSGO}" Background="#101822" BorderBrush="#E5101822">
+					<WrapPanel Margin="5 0 0 0">
+						<Image Source="/Resources/csgo_icon.jpg" Height="32" Width="32"/>
+						<TextBlock Text="Counter-Strike: GO" Foreground="#FFEBEBEB" VerticalAlignment="Center" Margin="10,0,0,0"/>
+					</WrapPanel>
+				</Button>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+				<Button Height="40" Padding="2" Width="{Binding ActualWidth, ElementName=stackPanel1, Mode=OneWay}" HorizontalContentAlignment="Left"
+				        Command="Select" CommandParameter="{x:Static local:Game.Dota2}" Background="{Binding Background, ElementName=button}" BorderBrush="{Binding BorderBrush, ElementName=button}">
+					<WrapPanel Margin="5 0 0 0">
+						<Image Source="/Resources/dota2_icon.jpg" Height="32" Width="32" />
+						<TextBlock Text="Dota 2" Foreground="#FFEBEBEB" VerticalAlignment="Center" Margin="10,0,0,0" />
+					</WrapPanel>
+				</Button>
+			</StackPanel>
+		</StackPanel>
+	</Grid>
+</Window>
