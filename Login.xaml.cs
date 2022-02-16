@@ -35,26 +35,19 @@ namespace SteamMarketViewer
 			{
 				_steamControl.AuthenticateAsync(LoginBox.Text, PasswordBox.Password);
 			}
+			if (_steamControl.Need2FA) SteamGuardCode.Focus();
+			if (_steamControl.NeedCaptcha) CaptchaBox.Focus();
+			if (_steamControl.NeedEmail) EmailCode.Focus();
 		}
 
 		private void SteamGuardCode_TextChanged(object sender, TextChangedEventArgs e)
 		{
-			if (SteamGuardCode.Text.Length >= 5)
-			{
-				LoginBtn_Click(this, new RoutedEventArgs(null));
-			}
-
-			SteamGuardCode.CaretIndex = SteamGuardCode.Text.Length;
+            SteamGuardCode.CaretIndex = SteamGuardCode.Text.Length;
 		}
-
 		private void EmailCode_TextChanged(object sender, TextChangedEventArgs e)
-		{
-			if (EmailCode.Text.Length >= 5)
-			{
-				LoginBtn_Click(this, new RoutedEventArgs(null));
-			}
-			EmailCode.CaretIndex = EmailCode.Text.Length;
-		}
+        {
+            EmailCode.CaretIndex = EmailCode.Text.Length;
+        }
 	}
 
 	public class InversedBoolToVisibility : IValueConverter

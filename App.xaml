@@ -8,11 +8,13 @@
 	<Application.Resources>
 
 		<ResourceDictionary>
+
 			<FontFamily x:Key="Motiva Sans">pack://application:,,,/Fonts/#Motiva Sans</FontFamily>
 			<ResourceDictionary.MergedDictionaries>
 				<materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="Lime" SecondaryColor="DeepOrange" />
 				<ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
 			</ResourceDictionary.MergedDictionaries>
+
 		</ResourceDictionary>
 
     </Application.Resources>

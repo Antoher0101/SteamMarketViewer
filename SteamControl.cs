@@ -29,8 +29,30 @@ namespace SteamMarketViewer
 		private string _errorMessage;
 		private bool _loading;
 		private bool _isLoggined;
-		public ObservableCollection<Item> ItemList { get; set; } = new ObservableCollection<Item>();
+
+		public ObservableCollection<Item> ItemList
+		{
+			get => _itemList;
+			set => _itemList = value;
+		}
+
+		public ObservableCollection<Page> PageList
+		{
+			get => _pageList;
+			set => _pageList = value;
+		}
+
 		private Game _choosedGame = Game.CSGO;
+		private ObservableCollection<Item> _itemList = new ObservableCollection<Item>();
+		private ObservableCollection<Page> _pageList = new ObservableCollection<Page>();
+		private CookieContainer _loginCookies;
+		private bool _processing = false;
+		private int _pageSize;
+		private int _pageCount;
+		private int _currentPage;
+		private int _searchResultsStart;
+		private int _searchResultsEnd;
+		private int _totalResults;
 
 		public Game ChoosedGame
 		{
@@ -48,7 +70,7 @@ namespace SteamMarketViewer
 			private set => _user = value;
 		}
 
-		public async void AuthenticateAsync(string login, string pass, object test = null)
+		public async void AuthenticateAsync(string login, string pass)
 		{
 			User = new UserLogin(login, pass);
 			LoginResult response = LoginResult.BadCredentials;
@@ -127,7 +149,8 @@ namespace SteamMarketViewer
 				}
 				else IsLoggined = false;
 			});
-		}
+            CheckLoggined();
+        }
 
 		public void CheckLoggined()
 		{
@@ -148,8 +171,136 @@ namespace SteamMarketViewer
 			}
 		}
 
-		public CookieContainer LoginCookies { get; set; }
-		public bool Processing { get; set; } = false;
+		public void GeneratePageList()
+		{
+			PageList.Clear();
+			if (PageCount > 8)
+			{
+				if (CurrentPage == 1)
+				{
+					PageList.Add(new Page()
+					{
+						NotCurrent = false,
+						Number = "1"
+					});
+				}
+				else
+				{
+					PageList.Add(new Page()
+					{
+						NotCurrent = true,
+						Number = "1"
+					});
+				}
+				if (CurrentPage + 4 >= PageCount)
+				{
+					PageList.Add(new Page()
+					{
+						NotCurrent = false,
+						Number = "..."
+					});
+					for (int i = PageCount - 5; i <= PageCount; i++)
+					{
+						PageList.Add(new Page()
+						{
+							NotCurrent = i != CurrentPage,
+							Number = i.ToString()
+						});
+					}
+				}
+				else if (CurrentPage > 4)
+				{
+					PageList.Add(new Page()
+					{
+						NotCurrent = false,
+						Number = "..."
+					});
+					for (int i = CurrentPage - 2; i < CurrentPage + 3; i++)
+					{
+						if (i == CurrentPage)
+						{
+							PageList.Add(new Page()
+							{
+								NotCurrent = false,
+								Number = i.ToString()
+							});
+							continue;
+						}
+						PageList.Add(new Page()
+						{
+							NotCurrent = true,
+							Number = i.ToString()
+						});
+					}
+					PageList.Add(new Page()
+					{
+						NotCurrent = false,
+						Number = "..."
+					});
+					PageList.Add(new Page()
+					{
+						NotCurrent = true,
+						Number = PageCount.ToString()
+					});
+				}
+				else
+				{
+					for (int i = 2; i < 7; i++)
+					{
+						if (i == 1)
+						{
+							continue;
+						}
+						if (i == CurrentPage)
+						{
+							PageList.Add(new Page()
+							{
+								NotCurrent = false,
+								Number = i.ToString()
+							});
+							continue;
+						}
+						PageList.Add(new Page()
+						{
+							NotCurrent = true,
+							Number = i.ToString()
+						});
+					}
+					PageList.Add(new Page()
+					{
+						NotCurrent = false,
+						Number = "..."
+					});
+					PageList.Add(new Page()
+					{
+						NotCurrent = true,
+						Number = PageCount.ToString()
+					});
+				}
+			}
+			else
+			{
+				for (int i = 1; i <= PageCount; i++)
+				{
+					PageList.Add(new Page()
+					{
+						NotCurrent = i != CurrentPage,
+						Number = i.ToString()
+					});
+				}
+			}
+		}
+		public CookieContainer LoginCookies
+		{
+			get => _loginCookies;
+			set => _loginCookies = value;
+		}
+
+		public bool Processing
+		{
+			get => _processing;
+			set => _processing = value;
+		}
 
 		public bool IsLoggined
 		{
@@ -251,6 +402,8 @@ namespace SteamMarketViewer
 			}
 		}
 
+
+
 		public string CaptchaLink
 		{
 			get => _captchaLink;
@@ -272,7 +425,14 @@ namespace SteamMarketViewer
 
 		class SuccessClass
 		{
-			[JsonProperty("success")] public bool Success { get; set; } = false;
+			private bool _success = false;
+
+			[JsonProperty("success")]
+			public bool Success
+			{
+				get => _success;
+				set => _success = value;
+			}
 		}
 
 		public System.Windows.Input.ICommand RemoveItem
@@ -289,8 +449,91 @@ namespace SteamMarketViewer
 		}
 		private void AnalyzeItemCommand(Item item)
 		{
+			Clipboard.SetText(item.Link);
 			Analytics.Analyze(item);
 		}
+        public int PageSize
+		{
+			get => _pageSize;
+			set
+			{
+				_pageSize = value;
+				NotifyPropertyChanged(nameof(PageSize));
+			}
+		}
+		public int PageCount
+		{
+			get => _pageCount;
+			set
+			{
+				_pageCount = value;
+				NotifyPropertyChanged(nameof(PageCount));
+			}
+		}
+		public int CurrentPage
+		{
+			get => _currentPage;
+			set
+			{
+				_currentPage = value;
+				NotifyPropertyChanged(nameof(CurrentPage));
+			}
+		}
+		public int SearchResultsStart
+		{
+			get => _searchResultsStart;
+			set
+			{
+				_searchResultsStart = value;
+				NotifyPropertyChanged(nameof(SearchResultsStart));
+			}
+		}
+		public int SearchResultsEnd
+		{
+			get => _searchResultsEnd;
+			set
+			{
+				_searchResultsEnd = value;
+				NotifyPropertyChanged(nameof(SearchResultsEnd));
+			}
+		}
+
+		private bool _canPrevPage;
+		private bool _canNextPage;
+		public bool CanPrevPage
+		{
+			get => _canPrevPage;
+			set
+			{
+				_canPrevPage = value;
+				NotifyPropertyChanged(nameof(CanPrevPage));
+			}
+		}
+		public bool CanNextPage
+		{
+			get => _canNextPage;
+			set
+			{
+				_canNextPage = value;
+				NotifyPropertyChanged(nameof(CanNextPage));
+			}
+		}
+		public int TotalResults
+		{
+			get => _totalResults;
+			set
+			{
+				_totalResults = value;
+				NotifyPropertyChanged(nameof(TotalResults));
+			}
+		}
+	}
+
+	public class Page
+	{
+		public string Number { get; set; }
+		public bool NotCurrent { get; set; }
+
 	}
 
 	public class EnumBooleanConverter : IValueConverter

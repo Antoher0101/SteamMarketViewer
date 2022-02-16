@@ -24,12 +24,18 @@
 	</Window.Resources>
 
 	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="20*"/>
+			<RowDefinition Height="1*"/>
+		</Grid.RowDefinitions>
 
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="4*"/>
 			<ColumnDefinition Width="1*"/>
 		</Grid.ColumnDefinitions>
-		<Menu Panel.ZIndex="2" HorizontalContentAlignment="Center" Background="#171a21" Foreground="#b8b6b4" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled" VerticalContentAlignment="Center" UseLayoutRounding="False" Grid.ColumnSpan="2">
+		<Menu Panel.ZIndex="2" HorizontalContentAlignment="Center" Background="#171a21" Foreground="#b8b6b4" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled" VerticalContentAlignment="Center" UseLayoutRounding="False" 
+		      Grid.ColumnSpan="2"
+		      Height="48">
 			<Menu.ItemsPanel>
 				<ItemsPanelTemplate>
 					<DockPanel/>
@@ -49,7 +55,8 @@
 			<MenuItem Grid.Column="1" Header="Войти в Steam"  Background="#5c7e10" Click="Steam_LogIn_Click" Visibility="{Binding IsLoggined, Converter={StaticResource InversedBoolToVisibility}, FallbackValue=Visible}" VerticalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Right" HorizontalContentAlignment="Right" FlowDirection="RightToLeft"/>
 
 		</Menu>
-		<ListView x:Name="ItemList" Margin="5 50 5 5" ItemsSource="{Binding ItemList}" MouseUp="ItemList_OnMouseUp" Grid.Column="0" IsSynchronizedWithCurrentItem="False">
+		<ListView x:Name="ItemList" Margin="5 50 5 5" ItemsSource="{Binding ItemList}" MouseUp="ItemList_OnMouseUp" Grid.Column="0" IsSynchronizedWithCurrentItem="False" 
+		          Grid.Row="0">
 			<ListView.View>
 				<GridView>
 					<GridViewColumn Header="НАЗВАНИЕ" Width="Auto">
@@ -104,7 +111,10 @@
 					<MenuItem Header="Remove"
 					          Command="{Binding RemoveItem}"
 					          CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}" />
-				</ContextMenu>
+                    <MenuItem Header="Check histogram"
+                              Command="{Binding HistogramV}"
+                              CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=PlacementTarget.SelectedItem}" />
+                </ContextMenu>
 			</ListView.ContextMenu>
 			<ListView.ItemContainerStyle>
 				<Style TargetType="ListViewItem" BasedOn="{StaticResource MaterialDesignGridViewItem}">
@@ -116,30 +126,80 @@
 				</Style>
 			</ListView.ItemContainerStyle>
 		</ListView>
-		<!--<Popup x:Name="popup1" StaysOpen="False" Placement="Mouse"
-         AllowsTransparency="False" Grid.RowSpan="2" PopupAnimation="Slide" Visibility="Collapsed"  >
+        <Popup x:Name="popup1" AllowsTransparency="True"
+               StaysOpen="True"
+               Placement="Top"
+               IsOpen="False">
+
+            <WpfPlot x:Name="PriceList" Visibility="Visible" Width="1000" Height="400"/>
+
+        </Popup>
+
+        <DockPanel Grid.Row="1" Grid.Column="0" Margin="10,0">
+			<TextBlock x:Name="PagingSummary" Text="Результаты " VerticalAlignment="Center"/>
+			<TextBlock Text="{Binding SearchResultsStart}" VerticalAlignment="Center"/>
+			<TextBlock Text="–" VerticalAlignment="Center"/>
+			<TextBlock Text="{Binding SearchResultsEnd}" VerticalAlignment="Center"/>
+			<TextBlock Text=" из " VerticalAlignment="Center"/>
+			<TextBlock Text="{Binding TotalResults}" VerticalAlignment="Center"/>
 			
-		</Popup> -->
-		<WpfPlot x:Name="PriceList" Width="919" Height="300" Visibility="Collapsed"></WpfPlot>
+			<DockPanel HorizontalAlignment="Right" VerticalAlignment="Center" >
+				<Button x:Name="PrevPage" Padding="0" Content="&lt;" Height="17" Width="40" HorizontalAlignment="Right" Foreground="#66c0f4" Background="#3367C1F5" 
+				        BorderBrush="Transparent" Click="PrevPage_Click" IsEnabled="{Binding CanPrevPage}"/>
+
+				<ListView ItemsSource="{Binding PageList}" ScrollViewer.CanContentScroll="False" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Auto" HorizontalAlignment="Center" IsSynchronizedWithCurrentItem="True">
+					<ListView.ItemsPanel>
+						<ItemsPanelTemplate>
+							<VirtualizingStackPanel Orientation="Horizontal" HorizontalAlignment="Center" />
+						</ItemsPanelTemplate>
+					</ListView.ItemsPanel>
+					<ListView.ItemTemplate>
+						<DataTemplate>
+							<TextBlock Text="{Binding Number}" IsEnabled="{Binding NotCurrent}" Padding="0" HorizontalAlignment="Center" VerticalAlignment="Center" 
+							           Cursor="Hand" MouseLeftButtonDown="SelectPage">
+								<TextBlock.Style>
+									<Style TargetType="{x:Type TextBlock}" >
+										<Style.Triggers>
+											<Trigger Property="IsEnabled" Value="False">
+												<Setter Property="Foreground"
+												        Value="{StaticResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+											</Trigger>
+										</Style.Triggers>
+									</Style>
+
+								</TextBlock.Style>
+							</TextBlock>
+						</DataTemplate>
+					</ListView.ItemTemplate>
+					<ListView.ItemContainerStyle>
+						<Style TargetType="ListViewItem">
+							<Setter Property="Focusable" Value="False"/>
+						</Style>
+
+					</ListView.ItemContainerStyle>
+				</ListView>
+
+				<Button x:Name="NextPage" Padding="0" Content="&gt;" Height="17" Width="40" HorizontalAlignment="Right" Foreground="#66c0f4" Background="#3367C1F5" BorderBrush="Transparent" Click="NextPage_Click" IsEnabled="{Binding CanNextPage}"/>
+                <TextBox x:Name="PageSelectBox" Width="45" Cursor="IBeam" Margin="10,0,0,0"/>
+            </DockPanel>
+		</DockPanel>
 		<Button x:Name="StartBtn" 
-				Margin="49,0,49,25"
-		        
-		        Width="100" 
-		        Click="StartBtn_Click" 
+				Margin="69,0" 
+		        Click="LoadItemsPage" 
 		        Grid.Column="1" 
 				Height="30"
 				BorderThickness="0"
 				Foreground="#b8b6b4"
-				Background="#5c7e10" VerticalAlignment="Bottom" Grid.Row="1" Padding="0" ScrollViewer.CanContentScroll="True" UseLayoutRounding="True">
+				Background="#5c7e10" VerticalAlignment="Bottom" Padding="0" ScrollViewer.CanContentScroll="True" UseLayoutRounding="True">
 			<Button.Content>
 				<StackPanel Orientation="Horizontal">
-				<TextBlock Text="Парсить" VerticalAlignment="Center"/>
-				<ProgressBar x:Name="progressBar" Grid.Column="1" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" Foreground="White" Margin="10,0,0,0" Width="25" Height="25" IsIndeterminate="True" 
+					<TextBlock Text="Парсить" VerticalAlignment="Center"/>
+					<ProgressBar x:Name="progressBar" Grid.Column="1" Style="{StaticResource MaterialDesignCircularProgressBar}" Value="0" Foreground="White" Margin="10,0,0,0" Width="25" Height="25" IsIndeterminate="True" 
 				             Visibility="{Binding Loading, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"/>
 				</StackPanel>
 			</Button.Content>
 		</Button>
-		
+
 
 		<StackPanel x:Name="stackPanel1" Grid.Column="1" HorizontalAlignment="Left" Height="200" Margin="15,62,0,0" VerticalAlignment="Top" Width="207">
 			<TextBlock Text="Поиск предметов" Foreground="#FF4582A5" Margin="0,0,0,10"></TextBlock>
@@ -148,7 +208,7 @@
 				<TextBox x:Name="ItemSearchField" TextWrapping="Wrap" Text="Поиск" Width="182" GotFocus="RemoveText" LostFocus="AddText" />
 				<Button x:Name="SearchBtn" 
 				        Height="Auto" Margin="0" HorizontalContentAlignment="Center" Padding="0" fa:Awesome.Content="search" 
-				        TextElement.FontFamily="pack://application:,,,/FontAwesome.WPF;component/#FontAwesome" Background="Transparent" BorderBrush="Transparent" Width="24" Foreground="#FF969AA1" Click="StartBtn_Click" IsDefault="True"/>
+				        TextElement.FontFamily="pack://application:,,,/FontAwesome.WPF;component/#FontAwesome" Background="Transparent" BorderBrush="Transparent" Width="24" Foreground="#FF969AA1" Click="LoadItemsPage" IsDefault="True"/>
 				<DockPanel/>
 			</StackPanel>
 			<StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -170,5 +230,5 @@
 				</Button>
 			</StackPanel>
 		</StackPanel>
-	</Grid>
+    </Grid>
 </Window>

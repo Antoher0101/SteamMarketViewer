@@ -6,8 +6,10 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Web.UI.WebControls;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using Palette = ScottPlot.Drawing.Palette;
@@ -25,11 +27,12 @@ namespace SteamMarketViewer
 			this.DataContext = SteamControl;
 			SteamControl.CheckLoggined();
 
+			SteamControl.PageSize = 50;
+			SteamControl.CurrentPage = 1;
+
 			CommandBinding bind = new CommandBinding(MediaCommands.Select);
 			bind.Executed += ChangeGame;
 			this.CommandBindings.Add(bind);
-			
-
 		}
 
 		private void Calc_Click(object sender, RoutedEventArgs e)
@@ -38,16 +41,39 @@ namespace SteamMarketViewer
 			calc.Show();
 		}
 
-		private async void StartBtn_Click(object sender, RoutedEventArgs e)
+		private async void LoadItemsPage(object sender, RoutedEventArgs e)
 		{
-			string q = ItemSearchField.Text == "Поиск" ? null : ItemSearchField.Text;
+			string q = ItemSearchField.Text == "Поиск" ? "" : ItemSearchField.Text;
+            string page = PageSelectBox.Text == "" ? "" : PageSelectBox.Text;
+			SteamSettings ss;
+			page = Regex.Replace(page, "[^0-9]+", string.Empty);
+			PageSelectBox.Text = page;
+			if (page != string.Empty)
+            {
+				SteamControl.CurrentPage = Int32.Parse(page);
+            }
+			if (q != string.Empty)
+			{
+				ss = new SteamSettings(0, SteamControl.PageSize, q, 1, SteamControl.ChoosedGame);
+			}
+			else ss = new SteamSettings((SteamControl.CurrentPage-1)*SteamControl.PageSize, SteamControl.PageSize, null, 1, SteamControl.ChoosedGame);
+
 			SteamControl.ItemList.Clear();
 			SteamControl.Loading = true;
-			MarketJson sj = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketJson>(await SteamWeb.RequestAsync(new SteamSettings(0,20, q, 1, SteamControl.ChoosedGame).URI
-				, "GET", data: null, SteamControl.LoginCookies));
-			GenerateItemList(sj);
-			SteamControl.Loading = false;
+			MarketJson jsonResponse = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketJson>(await SteamWeb.RequestAsync(ss.URI, "GET", data: null, SteamControl.LoginCookies));
 
+			
+			SteamControl.TotalResults = jsonResponse.total_count;
+			SteamControl.SearchResultsStart = jsonResponse.start+1;
+			SteamControl.SearchResultsEnd = jsonResponse.start+jsonResponse.pagesize<SteamControl.TotalResults? jsonResponse.start + jsonResponse.pagesize : SteamControl.TotalResults;
+			SteamControl.PageCount = (SteamControl.TotalResults + SteamControl.PageSize) / SteamControl.PageSize;
+			SteamControl.CanPrevPage = SteamControl.CurrentPage > 1;
+			SteamControl.CanNextPage = SteamControl.CurrentPage + 1 <= SteamControl.PageCount;
+
+			SteamControl.GeneratePageList();
+			GenerateItemList(jsonResponse);
+			
+			SteamControl.Loading = false;
 		}
 		private void GenerateItemList(MarketJson json)
 		{
@@ -87,25 +113,19 @@ namespace SteamMarketViewer
 		private void ItemList_OnMouseUp(object sender, MouseButtonEventArgs e)
 		{
 			var item = ((FrameworkElement)e.OriginalSource).DataContext as Item;
+
 			if (item != null)
 			{
-				PriceList.Plot.Palette = Palette.OneHalfDark;
-				int pointCount = item.Histogram.Dates.Count;
-				double[] dates = item.Histogram.Dates.Select(x => x.ToOADate()).ToArray();
+                PriceList.Plot.Clear();
+				PriceList.Plot.Palette = Palette.PolarNight;
+                double[] values = item.Analyze();
+			
+                PriceList.Plot.Clear();
+				PriceList.Plot.AddSignal(values);
+                PriceList.Refresh();
 
-				double[] values = new double[pointCount];
-				Random rand = new Random(0);
-				for (int i = 1; i < pointCount; i++)
-					values[i] = item.Histogram.Prices[i];
-				PriceList.Plot.Clear();
-				PriceList.Plot.AddScatter(dates, values, null, 1f, 2f, MarkerShape.filledCircle);
-				PriceList.Plot.XAxis.DateTimeFormat(true);
-				PriceList.Refresh();
-
-
-				//popup1.IsOpen = true;
-				//Console.WriteLine(item.HashName);
-			}
+                popup1.IsOpen = false;
+            }
 		}
 
 
@@ -126,6 +146,36 @@ namespace SteamMarketViewer
 		private void ChangeGame(object sender, ExecutedRoutedEventArgs e)
 		{
 			SteamControl.ChoosedGame = (Game)e.Parameter;
+		}
+
+		private void Analyzator(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
+		private void PrevPage_Click(object sender, RoutedEventArgs e)
+		{
+			SteamControl.CurrentPage--;
+			LoadItemsPage(sender, e);
+		}
+
+		private void NextPage_Click(object sender, RoutedEventArgs e)
+		{
+			SteamControl.CurrentPage++;
+			LoadItemsPage(sender, e);
+		}
+		private void SelectPage(object sender, MouseButtonEventArgs e)
+		{
+			var text = sender as TextBlock;
+			if (text != null)
+			{
+				int page;
+				if (int.TryParse(text.Text, out page))
+				{
+					SteamControl.CurrentPage = page;
+					LoadItemsPage(sender, e);
+				}
+			}
 		}
 	}
 	public enum Game

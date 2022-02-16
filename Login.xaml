@@ -79,7 +79,7 @@
 				         FontSize="16" Background="#FF32353C" FontFamily="Motiva Sans, Roboto" BorderThickness="0"
 				         Text ="{Binding GuardCode, IsAsync=True, UpdateSourceTrigger=PropertyChanged}"
 						 MaxLength="5"
-				         CharacterCasing="Upper" TextChanged="SteamGuardCode_TextChanged"/>
+				         CharacterCasing="Upper" TextChanged="SteamGuardCode_TextChanged" Cursor="IBeam"/>
 			</StackPanel>
 			<StackPanel x:Name="EmailPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="59,25" Width="274" Height="Auto" 
 			            Visibility="{Binding NeedEmail, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed, IsAsync=True}">

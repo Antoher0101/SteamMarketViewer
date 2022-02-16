@@ -18,6 +18,10 @@ namespace SteamMarketViewer.WebClient
 		/// </summary>
 		public SteamSettings(int start = 0, int count = 10, string query = "", int norender = 1, Game app = Game.CSGO)
 		{
+			// string sort = "price";
+			// string sort_dir = "asc";
+			string sort = "quantity";
+			string sort_dir = "desc";
 			string appid = "";
 			switch (app)
 			{
@@ -25,7 +29,7 @@ namespace SteamMarketViewer.WebClient
 				case Game.Dota2: appid = "570"; break;
 			}
 			string addr =
-				"https://steamcommunity.com/market/search/render/?query={query}&norender={render}&start={start}&count={count}&search_descriptions=0&sort_column=quantity&sort_dir=desc&appid={appid}";
+				"https://steamcommunity.com/market/search/render/?query={query}&norender={render}&start={start}&count={count}&search_descriptions=0&sort_column=price&sort_dir=asc&appid={appid}&language=russian";
 			URI = addr
 				.Replace("{query}", query)
 				.Replace("{render}", norender.ToString())
